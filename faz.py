@@ -4,16 +4,14 @@ from selenium import webdriver, common
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from _config import db, db_host, db_user, db_password, faz_user, faz_password
 
 
 browser = webdriver.Firefox(executable_path="/Users/corneliamaurus/PycharmProjects/untitled/geckodriver")
 browser.implicitly_wait(5)
 
 # Datenbankverbindung herstellen
-db = mysql.connector.connect(host='',
-                             database='',
-                             user='',
-                             password='')
+db = mysql.connector.connect(host=db_host, database=db, user=db_user, password=db_password)
 
 # Prüfen, ob Datenbankverbindung erfolgreich hergestellt wurde
 if not db.is_connected():
@@ -27,9 +25,9 @@ browser.get("https://www.faz.net/mein-faz-net/?ot=de.faz.ot.body-vm&vm=loginboxf
 # time.sleep(10)
 # username = browser.find_element_by_name("loginName")
 username = WebDriverWait(browser, 10).until(EC.presence_of_element_located((By.NAME, 'loginName')))
-username.send_keys("")
+username.send_keys(faz_user)
 password = browser.find_element_by_name("password")
-password.send_keys("")
+password.send_keys(faz_password)
 Anmelden = browser.find_element_by_class_name("btn-Base_Link")
 Anmelden.click()
 
