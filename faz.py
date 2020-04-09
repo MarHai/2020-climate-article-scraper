@@ -1,10 +1,13 @@
-from __future__ import print_function
 import mysql.connector
 import time
 from selenium import webdriver, common
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 
 browser = webdriver.Firefox(executable_path="/Users/corneliamaurus/PycharmProjects/untitled/geckodriver")
+browser.implicitly_wait(5)
 
 # Datenbankverbindung herstellen
 db = mysql.connector.connect(host='',
@@ -20,10 +23,10 @@ if not db.is_connected():
 # Einzelnen Cursor für Datenbankoperationen deklarieren
 cursor = db.cursor(buffered=True)
 
-browser.get("https://www.faz.net/mein-faz-net/?ot=de.faz.ot.body-vm&vm=loginboxformresp&excludeAds=true&redirectUrl=")
-time.sleep(10)
-
-username = browser.find_element_by_name("loginName")
+browser.get("https://www.faz.net/mein-faz-net/?ot=de.faz.ot.body-vm&vm=loginboxformresp&excludeAds=true")
+# time.sleep(10)
+# username = browser.find_element_by_name("loginName")
+username = WebDriverWait(browser, 10).until(EC.presence_of_element_located((By.NAME, 'loginName')))
 username.send_keys("")
 password = browser.find_element_by_name("password")
 password.send_keys("")
@@ -65,34 +68,41 @@ time.sleep(5)
 
 
 #einzelne Artikel loose aus der Datenbank aufrufen
-time.sleep(5)
+# time.sleep(5)
 cursor.execute('SELECT url, uid FROM article WHERE outlet = %s AND text IS NULL' , ("faz.net",))
 if cursor.with_rows:
     articles = cursor.fetchall()
     print('%d lose Artikel in Datenbank gefunden' % (len(articles),))
+else:
+    articles = []
+    print('keine Artikel in der Datenbank gefunden')
 
 for article in articles:
     article_uid = article[1]
     #print(article_uid)
     url = article[0]
-    #print(url)
+    print(url)
     browser.get(url)
 
-#read article on one page
+    #read article on one page
     try:
-        read_on_same_page = browser.find_element_by_partial_link_text('ARTIKEL AUF EINER SEITE LESEN')
+        # read_on_same_page = browser.find_element_by_partial_link_text('ARTIKEL AUF EINER SEITE LESEN')
+        read_on_same_page = WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.PARTIAL_LINK_TEXT, 'ARTIKEL AUF EINER SEITE LESEN')))
         if read_on_same_page:
             read_on_same_page = browser.find_element_by_class_name('btn-Base_Link').get_attribute("href")
             teillink = read_on_same_page.split('#')
             wholelink = (teillink[0] + "?printPagedArticle=true#pageIndex_2")
             browser.get(wholelink)
-    except common.exceptions.NoSuchElementException:
+    except (common.exceptions.NoSuchElementException, common.exceptions.TimeoutException):
         print("Hier gibt es nur eine Seite")
-    time.sleep(5)
+    # time.sleep(5)
 
     try:
-        publication_date = browser.find_element_by_class_name('atc-MetaTime').text
-    except common.exceptions.NoSuchElementException:
+        # publication_date = browser.find_element_by_class_name('atc-MetaTime').text
+        publication_date = WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.CLASS_NAME, 'atc-MetaTime')))
+        if publication_date:
+            publication_date = publication_date.text
+    except (common.exceptions.NoSuchElementException, common.exceptions.TimeoutException):
         publication_date = ''
     print(publication_date, sep='\n')
 
@@ -104,6 +114,7 @@ for article in articles:
 
     try:
         article_author = browser.find_element_by_class_name('atc-MetaItem-author').text
+        article_author = article_author.replace('VON ', '')
     except common.exceptions.NoSuchElementException:
         article_author = ''
     print(article_author, sep='\n')
@@ -111,13 +122,13 @@ for article in articles:
     try:
         article_presentation = browser.find_element_by_class_name('atc-MetaAuthorText').text
         if " KOMMENTAR " in article_presentation:
+            print('%s als Meinungsartikel identifiziert' % (article_presentation,))
             article_presentation = "Meinungsartikel"
         else:
             article_presentation = " "
     except common.exceptions.NoSuchElementException:
         #article_presentation = 'Kein Kommentar'
-        article_presentation = " "
-    print(article_presentation, sep='\n')
+        article_presentation = ""
 
 
     try:
@@ -150,119 +161,103 @@ for article in articles:
     if cursor.rowcount > 0:
         print('Artikel %d für die FAZ erfolgreich aktualisiert' % (article_uid,))
 
-    time.sleep(5)
+    # time.sleep(5)
 
     while True:
         try:
-            browser.implicitly_wait(10)
-            versuch1 = browser.find_element_by_class_name("js-lst-Comments_List-show-more").click()
-            time.sleep(10)
-            versuch2 = browser.find_element_by_class_name("js-lst-Comments_List-show-more").click()
-        except common.exceptions.NoSuchElementException:
+            # browser.implicitly_wait(10)
+            # versuch1 = browser.find_element_by_class_name("js-lst-Comments_List-show-more").click()
+            # time.sleep(10)
+            # versuch2 = browser.find_element_by_class_name("js-lst-Comments_List-show-more").click()
+            WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.CLASS_NAME, 'js-lst-Comments_List-show-more'))).click()
+        except (common.exceptions.NoSuchElementException, common.exceptions.TimeoutException):
             break
 
-#start scraping comments
-    comment_boxes = browser.find_elements_by_class_name('lst-Comments_Item-level1')
-    comment_id = 0
+    #start scraping comments
+    comments_main = browser.find_elements_by_class_name('lst-Comments_Item-level1')
+    # comment_id = 0
 
-    for j, box in enumerate (comment_boxes):
+    for j, comment_main in enumerate(comments_main):
+
+        # Hauptkommentar in DB schreiben und neu erstellte ID merken
+        try:
+            kommentar_autor = comment_main.find_element_by_class_name('lst-Comments_CommentInfoNameLink').get_attribute('innerHTML')
+        except common.exceptions.NoSuchElementException:
+            kommentar_autor = ''
+        try:
+            kommentar_titel = comment_main.find_element_by_class_name('lst-Comments_CommentTitle').get_attribute('innerHTML')
+        except common.exceptions.NoSuchElementException:
+            kommentar_titel = ''
+        try:
+            kommentar_text = comment_main.find_element_by_class_name('lst-Comments_CommentText').get_attribute('innerHTML')
+        except common.exceptions.NoSuchElementException:
+            kommentar_text = ''
+        cursor.execute('INSERT INTO comment (article_uid, rank , commenter, title, text)'
+                       'VALUES (%s, %s, %s, %s, %s)',
+                       (article_uid, (j+1), kommentar_autor, kommentar_titel, kommentar_text))
+        if cursor.lastrowid:
+            comment_main_uid = cursor.lastrowid
+            print('Hauptkommentar für die FAZ erfolgreich gespeichert unter der ID %d' % (comment_main_uid,))
+        else:
+            comment_main_uid = None
+
 
         #allcomments = box.find_elements_by_class_name('lst-Comments_CommentTextContainer')
-        allcomments = box.find_elements_by_class_name('lst-Comments_CommentBoxContent')
+        comments_replies = comment_main.find_elements_by_class_name('lst-Comments_Item-level2')
 
-        first_comment_id = comment_id + 1
+        # first_comment_id = comment_id + 1
 
-        for k, comment in enumerate(allcomments):
-            comment_id = comment_id + 1
-            print(comment_id)
+        for k, comment_reply in enumerate(comments_replies):
+            #comment_id = comment_id + 1
+            #print(comment_id)
 
-            is_reply_to = first_comment_id, "/", k + 1
-            is_reply_to = str(is_reply_to)
-            print(is_reply_to)
-
-            try:
-                kommentare_autor = comment.find_element_by_class_name('lst-Comments_CommentInfoNameText').get_attribute("innerHTML")
-                print(kommentare_autor)
-            except common.exceptions.NoSuchElementException:
-                kommentare_autor = ''
+            # is_reply_to = first_comment_id, "/", k + 1
+            # is_reply_to = str(is_reply_to)
+            # print(is_reply_to)
 
             try:
-                kommentare_titel = comment.find_element_by_class_name('lst-Comments_CommentTitle').get_attribute("innerHTML")
-                print(kommentare_titel)
+                kommentar_autor = comment_reply.find_element_by_class_name('lst-Comments_CommentInfoNameLink').get_attribute('innerHTML')
             except common.exceptions.NoSuchElementException:
-                kommentare_titel = ''
-
+                kommentar_autor = ''
             try:
-                kommentare_text = comment.find_element_by_class_name('lst-Comments_CommentText').get_attribute("innerHTML")
-                print(kommentare_text)
+                kommentar_titel = comment_reply.find_element_by_class_name('lst-Comments_CommentTitle').get_attribute('innerHTML')
             except common.exceptions.NoSuchElementException:
-                kommentare_text = ''
+                kommentar_titel = ''
+            try:
+                kommentar_text = comment_reply.find_element_by_class_name('lst-Comments_CommentText').get_attribute('innerHTML')
+            except common.exceptions.NoSuchElementException:
+                kommentar_text = ''
 
-        #first_comment_id = comment_id + 1
+            #first_comment_id = comment_id + 1
 
-        #save comments in DBS
+            #save comments in DBS
             cursor.execute('INSERT INTO comment (article_uid, rank , commenter, title, text, is_reply_to)'
-                        'VALUES (%s, %s, %s, %s, %s, %s)',
-                        (
-                            article_uid,  # Artikel-ID
-                            comment_id,
-                            kommentare_autor,
-                            kommentare_titel,
-                            kommentare_text,
-                            is_reply_to,
-                         ))
+                           'VALUES (%s, %s, %s, %s, %s, %s)',
+                           (article_uid, (k+1), kommentar_autor, kommentar_titel, kommentar_text, comment_main_uid))
             if cursor.lastrowid:
                 uid = cursor.lastrowid
                 print('Kommentar für die FAZ erfolgreich gespeichert unter der ID %d' % (uid,))
 
-        first_comment_id = comment_id + 1
+        # first_comment_id = comment_id + 1
 
-    time.sleep(30)
-    #make all comments visible in order to take screenshots
-    try:
-        firstcommentopen = browser.find_element_by_class_name("lst-Comments_CommentTextContainerMainInfo")
+    # take screenshots
+    # option 1
 
-        comment_button = browser.find_elements_by_class_name("js-lst-Comments_CommentTitleClickProxy")
-        for x in range(0, len(comment_button)):
-            if comment_button[x].is_displayed():
-                comment_button[x].click()
+    # original_size = browser.get_window_size()
+    # required_width = browser.execute_script('return document.body.parentNode.scrollWidth')
+    # required_height = browser.execute_script('return document.body.parentNode.scrollHeight')
+    # #print(required_width)
+    # #print(required_height)
+    # time.sleep(90)
+    # browser.set_window_size(required_width, required_height)
+    # with open('Screenshot'+article_title+'.png', 'wb') as image_file:
+    #     image_file.write(bytearray(browser.find_element_by_tag_name('body').screenshot_as_png))
+    # browser.set_window_size(original_size['width'], original_size['height'])
 
-        answercomment_button = browser.find_elements_by_class_name("js-lst-Comments_CommentReplyList")
-        for y in range(0, len(answercomment_button)):
-            if answercomment_button[y].is_displayed():
-                answercomment_button[y].click()
-
-        answercomment = browser.find_elements_by_class_name("lst-Comments_Item-level2")
-        for z in range(0, len(answercomment)):
-            answercomment_button2 = answercomment[z].find_elements_by_class_name("js-lst-Comments_CommentTitleClickProxy")
-            for x in range(0, len(answercomment_button2)):
-                if answercomment_button2[x].is_displayed():
-                    answercomment_button2[x].click()
-    except common.exceptions.NoSuchElementException:
-        pass
-
-        # take screenshots
-        # option 1
-
-        # original_size = browser.get_window_size()
-        # required_width = browser.execute_script('return document.body.parentNode.scrollWidth')
-        # required_height = browser.execute_script('return document.body.parentNode.scrollHeight')
-        # #print(required_width)
-        # #print(required_height)
-        # time.sleep(90)
-        # browser.set_window_size(required_width, required_height)
-        # with open('Screenshot'+article_title+'.png', 'wb') as image_file:
-        #     image_file.write(bytearray(browser.find_element_by_tag_name('body').screenshot_as_png))
-        # browser.set_window_size(original_size['width'], original_size['height'])
-
-        #option 2
-    path = '/Users/corneliamaurus/PycharmProjects/untitled/Artikel_'+str(article_uid)+'.png'
-
-    el = browser.find_element_by_tag_name('body')
-    time.sleep(60)
-    el.screenshot(path)
-
-    time.sleep(20)
-
+    #option 2
+    # path = '/Users/corneliamaurus/PycharmProjects/untitled/Artikel_'+str(article_uid)+'.png'
+    path = 'screenshots/Artikel_'+str(article_uid)+'.png'
+    browser.find_element_by_tag_name('body').screenshot(path)
+    print('Screenshot für die FAZ unter %s gespeichert' % (path,))
 
 browser.quit()
