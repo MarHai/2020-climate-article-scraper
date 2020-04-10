@@ -2,16 +2,13 @@ import time
 import mysql.connector
 from selenium import webdriver, common
 import re #ermöglicht den Regex-Ausdruck search einzusetzen
+from _config import db, db_host, db_user, db_password, zeit_user, zeit_password
 
 # Browser instanzieren
 browser = webdriver.Firefox()
 
 #Datenbankverbindung herstellen
-db = mysql.connector.connect(host='haim.it',
-                             database='d0306a8e',
-                             user='d0306a8e',
-                             password='p3LNz3DgsRX7zMnh'
-                             )
+db = mysql.connector.connect(host=db_host, database=db, user=db_user, password=db_password)
 
                               
 
@@ -27,8 +24,8 @@ cursor = db.cursor(buffered=True)
 #***ANMELDUNG ZEIT ONLINE KONTO***
 outlet_signin = 'https://meine.zeit.de/anmelden?url=https%3A%2F%2Fwww.zeit.de%2Findex&entry_service=sonstige'
 browser.get(outlet_signin)
-browser.find_element_by_css_selector('#login_email').send_keys('[E-MAIL ADRESSE EINSETZEN]') 
-browser.find_element_by_css_selector('#login_pass').send_keys('[PASSWORT EINSETZEN]')
+browser.find_element_by_css_selector('#login_email').send_keys(zeit_user)
+browser.find_element_by_css_selector('#login_pass').send_keys(zeit_password)
 browser.find_element_by_css_selector('.submit-button').click()
 
 
