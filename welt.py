@@ -21,6 +21,9 @@ if not db.is_connected():
 # Einzelnen Cursor für Datenbankoperationen deklarieren
 cursor = db.cursor(buffered=True)
 
+# prevent db connection timeout
+cursor.execute('SET session wait_timeout=28800;')
+
 
 # sign in on welt.de
 browser.get('https://secure.mypass.de/sso/web-fullpage/login?service=https%3A%2F%2Flo.la.welt.de%2Fuser%2Fredirect%3FredirectUrl%3Dhttps%253A%252F%252Fwww.welt.de%252F&wt_eid=2155419246963806176&wt_t=1579609313997')
