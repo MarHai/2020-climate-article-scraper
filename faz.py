@@ -21,6 +21,9 @@ if not db.is_connected():
 # Einzelnen Cursor für Datenbankoperationen deklarieren
 cursor = db.cursor(buffered=True)
 
+# prevent db connection timeout
+cursor.execute('SET session wait_timeout=28800;')
+
 browser.get("https://www.faz.net/mein-faz-net/?ot=de.faz.ot.body-vm&vm=loginboxformresp&excludeAds=true")
 # time.sleep(10)
 # username = browser.find_element_by_name("loginName")
@@ -112,7 +115,6 @@ for article in articles:
 
     try:
         article_author = browser.find_element_by_class_name('atc-MetaItem-author').text
-        article_author = article_author.replace('VON ', '')
     except common.exceptions.NoSuchElementException:
         article_author = ''
     print(article_author, sep='\n')
@@ -168,7 +170,9 @@ for article in articles:
             # time.sleep(10)
             # versuch2 = browser.find_element_by_class_name("js-lst-Comments_List-show-more").click()
             WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.CLASS_NAME, 'js-lst-Comments_List-show-more'))).click()
-        except (common.exceptions.NoSuchElementException, common.exceptions.TimeoutException):
+        except (common.exceptions.NoSuchElementException,
+                common.exceptions.TimeoutException,
+                common.exceptions.StaleElementReferenceException):
             break
 
     #start scraping comments
