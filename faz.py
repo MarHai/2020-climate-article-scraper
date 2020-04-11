@@ -7,7 +7,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from _config import db, db_host, db_user, db_password, faz_user, faz_password
 
 
-browser = webdriver.Firefox(executable_path="/Users/corneliamaurus/PycharmProjects/untitled/geckodriver")
+browser = webdriver.Firefox(executable_path='geckodriver.exe')
 browser.implicitly_wait(5)
 
 # Datenbankverbindung herstellen

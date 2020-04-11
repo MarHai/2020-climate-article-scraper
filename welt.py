@@ -7,7 +7,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from _config import db, db_host, db_user, db_password, welt_user, welt_password
 
 
-browser = webdriver.Firefox()
+browser = webdriver.Firefox(executable_path='geckodriver.exe')
 browser.implicitly_wait(5)
 
 # database connection
