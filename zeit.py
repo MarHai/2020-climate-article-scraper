@@ -5,7 +5,7 @@ import re #ermöglicht den Regex-Ausdruck search einzusetzen
 from _config import db, db_host, db_user, db_password, zeit_user, zeit_password
 
 # Browser instanzieren
-browser = webdriver.Firefox()
+browser = webdriver.Firefox(executable_path='geckodriver.exe')
 
 #Datenbankverbindung herstellen
 db = mysql.connector.connect(host=db_host, database=db, user=db_user, password=db_password)
@@ -20,6 +20,9 @@ if not db.is_connected():
 #Einzelnen Cursor für Datenbankoperationen deklarieren
 cursor = db.cursor(buffered=True)
 
+# prevent db connection timeout
+cursor.execute('SET session wait_timeout=28800;')
+
 
 #***ANMELDUNG ZEIT ONLINE KONTO***
 outlet_signin = 'https://meine.zeit.de/anmelden?url=https%3A%2F%2Fwww.zeit.de%2Findex&entry_service=sonstige'
@@ -31,7 +34,7 @@ browser.find_element_by_css_selector('.submit-button').click()
 
 #+++++++++++++++++ ARTIKEL SCRAPEN ++++++++++++++++++++++++#
 
-cursor.execute('SELECT url, uid FROM article WHERE outlet = %s ', ("zeit.de",)) #AND text IS NULL
+cursor.execute('SELECT url, uid FROM article WHERE outlet = %s AND text IS NOT NULL', ("zeit.de",))
 if cursor.with_rows:
     articles = cursor.fetchall() #Prüft ob Zeilen leer sind und nimmt nur jene mit Inhalt
     print('%d lose Artikel in Datenbank gefunden' % (len(articles),))
@@ -316,30 +319,3 @@ if cursor.with_rows:
         if cursor.lastrowid:
             comment_uid = cursor.lastrowid
             print('Kommentar für die ZEIT erfolgreich gespeichert unter der ID %d' % (comment_uid,))
-
-# !!! FRAGE: Warum werden die Daten auch ohne commit in die Datenbank geladen?
-# # Datenbankoperationen ausführen
-db.commit()
-
-# # Selenium-Instanz schließen
-browser.quit()
-
-# # Abschließend werden noch Statistiken aus der Datenbank ausgelesen
-cursor.execute('SELECT COUNT(*) FROM article WHERE outlet = %s', ("Zeit-Online",))
-if cursor.with_rows:
-   article_count = cursor.fetchone()[0]
-   print('Insgesamt sind jetzt %d Artikel der ZEIT gespeichert' % (article_count,))
-
-cursor.execute('SELECT url, COUNT(comment.uid) '
-               'FROM article '
-               'LEFT JOIN comment ON (article_uid = article.uid) '
-               'WHERE outlet = %s '
-               'GROUP BY url',
-               ("Zeit-Online",))
-if cursor.with_rows:
-    comment_counts = cursor.fetchall()
-    comment_sum = 0
-    for comment_count in comment_counts:
-        comment_sum = comment_sum + comment_count[1]
-    comment_mean = comment_sum/len(comment_counts)
-    print('Im Mittel wurden für Artikel der ZEIT %d Kommentare gescraped' % (comment_mean,))
