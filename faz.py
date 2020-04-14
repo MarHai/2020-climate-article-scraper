@@ -183,7 +183,7 @@ for article in articles:
 
         # Hauptkommentar in DB schreiben und neu erstellte ID merken
         try:
-            kommentar_autor = comment_main.find_element_by_class_name('lst-Comments_CommentInfoNameLink').get_attribute('innerHTML')
+            kommentar_autor = comment_main.find_element_by_class_name('lst-Comments_CommentInfoNameText').get_attribute('innerHTML')
         except common.exceptions.NoSuchElementException:
             kommentar_autor = ''
         try:
