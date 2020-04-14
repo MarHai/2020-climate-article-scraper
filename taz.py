@@ -28,7 +28,7 @@ cursor = db.cursor(buffered=True)
 cursor.execute('SET session wait_timeout=28800;')
 
 
-cursor.execute('SELECT url, uid FROM article WHERE outlet = %s  ', ("taz.de",)) #AND text IS NULL
+cursor.execute('SELECT url, uid FROM article WHERE outlet = %s AND text IS NULL', ("taz.de",))
 if cursor.with_rows:
     articles = cursor.fetchall() #Prüft ob Zeilen leer sind und nimmt nur jene mit Inhalt
     print('%d lose Artikel in Datenbank gefunden' % (len(articles),))
@@ -43,7 +43,7 @@ if cursor.with_rows:
         
         #Paywall wegklicken
         try:
-            paywall = WebDriverWait(browser, 3).until(EC.presence_of_element_located((By.CLASS_NAME, 'tzi-paywahl__close')))
+            paywall = WebDriverWait(browser, 3).until(EC.presence_of_element_located((By.CSS_SELECTOR, '.tzi-paywahl__close a')))
             paywall.click()
         except (common.exceptions.NoSuchElementException, common.exceptions.TimeoutException):
             pass
@@ -52,52 +52,74 @@ if cursor.with_rows:
           
         # Titel
         try:
-            article_title = browser.find_element_by_css_selector('article.sectbody > h1:nth-child(1) > span:nth-child(3)').text
+            article_title = browser.find_element_by_css_selector('.news.article h1:nth-child(1) > span:not(.hide):not(.kicker)').text
         except common.exceptions.NoSuchElementException:
             article_title = ''
             
         # Text
         try:
-            article_text = browser.find_element_by_class_name('body').text
-        except common.exceptions.NoSuchElementException:
-            
             article_text = ''
+            article_paragraphs = browser.find_elements_by_css_selector('.news.article p.intro, .news.article article > p.article')
+            for p in article_paragraphs:
+                article_text += p.text + '\n\n'
+        except common.exceptions.NoSuchElementException:
+            article_text = ''
+
         # Datum
         try:
-            publication_date = browser.find_element_by_class_name('date').text
+            publication_date = browser.find_element_by_css_selector('.news .date')
+            try:
+                publication_date = publication_date.get_attribute('content')
+            except:
+                publication_date = publication_date.text
+            print('Datum: ' + publication_date)
         except common.exceptions.NoSuchElementException:
-            article_text = ''
+            publication_date = ''
             
-        # Autor
+        # Autoren
         try:
-            article_author = browser.find_element_by_class_name('author').text
-            article_author = article_author.replace('von ' , '').strip()
+            article_author = []
+            article_authors = browser.find_elements_by_css_selector('.news.article .author [itemprop="name"]')
+            for author in article_authors:
+                if author.text not in article_author:
+                    article_author.append(author.text)
+            article_author = ', '.join(article_author)
+            print("Autoren: " + article_author)
         except common.exceptions.NoSuchElementException:
-            article_author = browser.find_element_by_css_selector('.article.first.odd').text 
-        print("Autor: " + article_author)
+            article_author = ''
         
         # Darstellungsformen
-        kom = 'KOMMENTAR'
-        kol = 'KOLUMNE'
-        ess = 'ESSAY'
-        inter = 'INTERVIEW'
         try:
             #article_presentation = browser.find_element_by_class_name('secthead').text
-            article_presentation = browser.find_element_by_css_selector('.odd.sect.sect_profile.big.pictured ').text
-            if kom in article_presentation:
+            article_presentation = browser.find_element_by_css_selector('.news .rightbar .sect_profile .secthead').text
+            if 'KOMMENTAR' in article_presentation:
                 article_presentation = "Kommentar"
-            elif kom in article_presentation:
-                article_presentation = "Protokoll"
-            elif ess in article_presentation: 
+            elif 'KOLUMNE' in article_presentation:
+                article_presentation = "Kolumne"
+            elif 'ESSAY' in article_presentation:
                 article_presentation = "Essay"
-            elif inter in article_presentation:
+            elif 'INTERVIEW' in article_presentation:
                 article_presentation = "Interview"
-            else: 
-                  article_presentation = ''
-            print ("Darstellungsform: " + article_presentation) 
+            else:
+                article_presentation = ''
+            print("Darstellungsform: " + article_presentation)
         except common.exceptions.NoSuchElementException:
-            pass
-     
+            article_presentation = ''
+
+        cursor.execute('UPDATE article SET scrape_date = %s, title = %s, text = %s, publication_date =%s, author = %s, presentation = %s WHERE uid = %s ',
+                       (
+                           int(time.time()),  # aktueller Zeitstempel noch nicht umgewandelt
+                           article_title,
+                           article_text,
+                           publication_date,
+                           article_author,
+                           article_presentation,
+                           article_uid
+                       ))
+
+        if cursor.rowcount > 0:
+            print('Artikel %d für die taz erfolgreich aktualisiert' % (article_uid,))
+
         #+++++++++++++++++ KOMMENTARE FÜR AKTUELLEN ARTIKEL SCRAPEN (Adaption von Kim) +++++++++++++++++#
         
         #++++++++++++++ HAUPTKOMMENTARE +++++++++++++++++#
