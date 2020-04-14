@@ -6,16 +6,14 @@ import mysql.connector
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from _config import db_host, db, db_user, db_password
 
-browser = webdriver.Firefox()
-#+++++++++++++++++ DATENBANK ++++++++++++++++++#
 
-#Datenbankverbindung herstellen
-db = mysql.connector.connect(host='haim.it',
-                             database='d0306a8e',
-                             user='d0306a8e',
-                             password='p3LNz3DgsRX7zMnh'
-                             )
+browser = webdriver.Firefox(executable_path='geckodriver.exe')
+browser.implicitly_wait(5)
+
+# Datenbankverbindung herstellen
+db = mysql.connector.connect(host=db_host, database=db, user=db_user, password=db_password)
                              
 
 #Prüfen, ob Datenbankverbindung erfolgreich hergestellt wurde
