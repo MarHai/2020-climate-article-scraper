@@ -52,7 +52,7 @@ except (common.exceptions.NoSuchElementException, common.exceptions.TimeoutExcep
 
 #+++++++++++++++++ ARTIKEL SCRAPEN ++++++++++++++++++++++++#
 
-cursor.execute('SELECT url, uid FROM article WHERE outlet = %s AND text IS NOT NULL', ("zeit.de",))
+cursor.execute('SELECT url, uid FROM article WHERE outlet = %s AND text IS NULL', ("zeit.de",))
 if cursor.with_rows:
     articles = cursor.fetchall() #Prüft ob Zeilen leer sind und nimmt nur jene mit Inhalt
     print('%d lose Artikel in Datenbank gefunden' % (len(articles),))
