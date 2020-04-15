@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import time
-from selenium import webdriver, common
+from selenium import common
 import mysql.connector
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from _config import db_host, db, db_user, db_password
+from _browser import browser
 
-
-browser = webdriver.Firefox(executable_path='geckodriver.exe')
-browser.implicitly_wait(5)
 
 # Datenbankverbindung herstellen
 db = mysql.connector.connect(host=db_host, database=db, user=db_user, password=db_password)
