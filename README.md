@@ -10,26 +10,26 @@ Wir gehen von einem Unix-Server mit apt-get aus, also beispielsweise Ubuntu.
   git clone https://github.com/MarHai/2020-climate-article-scraper.git
   cd 2020-climate-article-scraper/
   ```
-1. Installation von Firefox: 
+2. Installation von Firefox: 
   ```
   sudo apt-get install -y firefox
   ```
-1. Installation eines simulierten visuellen Displays, weil der Server keine Grafikkarte besitzt: 
+3. Installation eines simulierten visuellen Displays, weil der Server keine Grafikkarte besitzt: 
   ```
   sudo apt-get install -y xvfb
   ```
-1. Installation der genutzten Python-Bibliotheken (die wir in [requirements.txt](requirements.txt) gelistet haben):
+4. Installation der genutzten Python-Bibliotheken (die wir in [requirements.txt](requirements.txt) gelistet haben):
   ```
   pip3 install -r requirements.txt
   ```
-1. Installation und Einrichtung einer lokalen Datenbank:
+5. Installation und Einrichtung einer lokalen Datenbank:
   ```
   sudo apt-get install -y mysql-server
   sudo mysql_secure_installation utility
   sudo systemctl enable mysql
   sudo systemctl start mysql
   ```
-1. Konfiguration korrekt setzen:
+6. Konfiguration korrekt setzen:
   ```
   nano _config.py
   ```
