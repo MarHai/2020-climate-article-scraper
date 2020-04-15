@@ -115,6 +115,8 @@ for article in articles:
 
     try:
         article_author = browser.find_element_by_class_name('atc-MetaItem-author').text
+        article_author = article_author.replace('VON ', '')
+        article_author = article_author.replace('EIN KOMMENTAR VON', '')
     except common.exceptions.NoSuchElementException:
         article_author = ''
     print(article_author, sep='\n')
@@ -183,7 +185,7 @@ for article in articles:
 
         # Hauptkommentar in DB schreiben und neu erstellte ID merken
         try:
-            kommentar_autor = comment_main.find_element_by_class_name('lst-Comments_CommentInfoNameLink').get_attribute('innerHTML')
+            kommentar_autor = comment_main.find_element_by_class_name('lst-Comments_CommentInfoNameText').get_attribute('innerHTML')
         except common.exceptions.NoSuchElementException:
             kommentar_autor = ''
         try:
