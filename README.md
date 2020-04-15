@@ -34,10 +34,18 @@ Wir gehen von einem Unix-Server mit apt-get aus, also beispielsweise Ubuntu.
   nano _config.py
   ```
 
-Jetzt sind wir startklar und können die einzelnen Dateien ausführen:
+Jetzt sind wir startklar und könnten die einzelnen Dateien einzeln ausführen ...
 ```
 python3 faz.py
 python3 taz.py
 python3 welt.py
 python3 zeit.py
+```
+
+... tun wir aber nicht, denn wir wollen uns nicht darum kümmern, alle einzeln anzustoßen. Stattdessen lassen wir die vier unabhängig voneinander im Hintergrund laufen. Sie sollen dabei jeweils in eigene Log-Dateien ihren Fortschritt protokollieren:
+```
+nohup python3 faz.py >> faz.log &
+nohup python3 taz.py >> taz.log &
+nohup python3 welt.py >> welt.log &
+nohup python3 zeit.py >> zeit.log &
 ```
