@@ -121,92 +121,101 @@ if cursor.with_rows:
             print('Artikel %d für die taz erfolgreich aktualisiert' % (article_uid,))
 
         #+++++++++++++++++ KOMMENTARE FÜR AKTUELLEN ARTIKEL SCRAPEN (Adaption von Kim) +++++++++++++++++#
+
+        #Scrollt runter um eventuelle Kommentare vor dem Screenshot nachzuladen
+        try:
+            browser.execute_script('window.scrollTo(0, Math.max(document.documentElement.scrollHeight, document.body.scrollHeight, document.documentElement.clientHeight));')
+            # element = browser.find_element_by_xpath('//a[@name="So können Sie kommentieren:"]')
+            # browser.execute_script("arguments[0].scrollIntoView()", element)
+            time.sleep(2)
+        except:
+            pass
+
+        # alle kommentare zeigen
+        try:
+            browser.find_element_by_css_selector('.community .showAll.submit').click()
+            time.sleep(2)
+        except:
+            pass
         
         #++++++++++++++ HAUPTKOMMENTARE +++++++++++++++++#
-        
-        comments_main = browser.find_elements_by_xpath('//div/ul/li[starts-with(@id, "bb_message_")]')
-        
+        comments_main = browser.find_elements_by_css_selector('.community .body ul.sectbody > li')
+        print('%d Hauptkommentare gefunden' % len(comments_main))
         for j, comment_main in enumerate(comments_main):
     
             # Hauptkommentar in DB schreiben und neu erstellte ID merken
             try:
-                kommentar_autor= comment_main.find_element_by_css_selector('.author.person').get_attribute("textContent")
+                kommentar_autor= comment_main.find_element_by_css_selector('.author.person').text
                 #kommentar_autor = comment_main.find_element_by_xpath('/a').text
                 # ## !!! Warum funktioniert die XPATH-Angabe an dieser Stelle nicht? Der Pfad verweist auf alle Namen wie der Css-Seclector
+                #' MH:
+                # gute Frage;
+                # xpath stammt eigentlich aus der XML-Geschichte und hat mitunter mit (davon leicht abgewandeltem)
+                # modernem HTML seine Probleme;
+                # ich persönliche bevorzuge die CSS-Selektoren
             except common.exceptions.NoSuchElementException:
                 kommentar_autor = ''
-            try:           
-                kommentar_text = comment_main.find_element_by_css_selector('.objlink.nolead').get_attribute("textContent")
+
+            try:
+                kommentar_text= comment_main.find_element_by_css_selector('.objlink.nolead').text
                 # XPATH: kommentar_text = comment_main.find_element_by_xpath('/div').text
-                kommentar_titel = ''
             except common.exceptions.NoSuchElementException:
                 kommentar_text = ''
-                kommentar_titel = ''
-                
-            cursor.execute('INSERT INTO comment (article_uid, rank , commenter, title, text)'
-                            'VALUES (%s, %s, %s, %s, %s)',
-                            (article_uid, (j+1), kommentar_autor, kommentar_titel, kommentar_text))
+
+            cursor.execute('INSERT INTO comment (article_uid, rank, commenter, text) VALUES (%s, %s, %s, %s)',
+                           (article_uid, (j+1), kommentar_autor, kommentar_text))
             if cursor.lastrowid:
                 comment_main_uid = cursor.lastrowid
                 print('Hauptkommentar für die taz gespeichert unter der ID %d' % (comment_main_uid,))
-            else:
-                comment_main_uid = None
-            
-             # isreplyto- Variante mit dem Antwortnamen @User; Problem: immer nur der oberste Kommentare werden gespeichert
-                    # try:
-                    #     comment_isreplyto = browser.find_element_by_css_selector('.reference.person.member').get_attribute("textContent")
-                    #     #Variante mit X-Path: comment_isreplyto = browser.find_element_by_xpath('//div/p/span').get_attribute("textContent")
-                    # except common.exceptions.NoSuchElementException:
-                    #     comment_isreplyto=""
-                    
-            #+++++ ANTWORTKOMMENTARE ++++++++#
-            
-            comments_replies = comment_main.find_elements_by_xpath('//*[@class="thread"]')
-            print("Anzahl der Antwortkommentare: " + str( len(comments_replies) ) )
-            ##!!! PROBLEM: die Threads sind ineinander verschachtelt. Jedes neues @User macht einen eigenen Thread auf und erkennt davon jeweils nur den ersten Kommentar
-                   
-            for k, comment_reply in enumerate(comments_replies):
-            
-                try: 
-                    kommentar_autor= comment_reply.find_element_by_css_selector('.author.person').get_attribute("textContent")
-                    #kommentar_autor = comment_main.find_element_by_xpath('//li/a').text
-                    print(kommentar_autor)
-                except common.exceptions.NoSuchElementException:
-                    print("Autor nicht gefunden")
-                try:
-                    kommentar_text = comment_reply.find_element_by_css_selector('.objlink.nolead').get_attribute("textContent")
-                    #kommentar_text = comment_main.find_element_by_xpath('//li[starts-with(@id, "bb_message_")]/div').text
-                    kommentar_titel = ''
-                    print (kommentar_text[0:50])
-                except common.exceptions.NoSuchElementException:
-                    print("Text nicht gefunden")
-                    kommentar_titel = ''
-    
-                #Einfügen in die Datenbank
-                cursor.execute('INSERT INTO comment (article_uid, rank , commenter, title, text, is_reply_to)'
-                                'VALUES (%s, %s, %s, %s, %s, %s)',
-                                (article_uid, (k+1), kommentar_autor, kommentar_titel, kommentar_text, comment_main_uid))
-                if cursor.lastrowid:
-                    uid = cursor.lastrowid
-                    print('Antwortkommentar für die taz gespeichert unter der ID %d' % (uid,))     
+
+                 # isreplyto- Variante mit dem Antwortnamen @User; Problem: immer nur der oberste Kommentare werden gespeichert
+                        # try:
+                        #     comment_isreplyto = browser.find_element_by_css_selector('.reference.person.member').get_attribute("textContent")
+                        #     #Variante mit X-Path: comment_isreplyto = browser.find_element_by_xpath('//div/p/span').get_attribute("textContent")
+                        # except common.exceptions.NoSuchElementException:
+                        #     comment_isreplyto=""
+
+                #+++++ ANTWORTKOMMENTARE ++++++++#
+
+                comments_replies = comment_main.find_elements_by_css_selector('ul.thread > li')
+                print("Anzahl der Antwortkommentare: " + str( len(comments_replies) ) )
+                ##!!! PROBLEM: die Threads sind ineinander verschachtelt. Jedes neues @User macht einen eigenen Thread auf und erkennt davon jeweils nur den ersten Kommentar
+
+                for k, comment_reply in enumerate(comments_replies):
+
+                    try:
+                        kommentar_autor = comment_reply.find_element_by_css_selector('.author.person').text
+                        #kommentar_autor = comment_main.find_element_by_xpath('//li/a').text
+                        #print(kommentar_autor)
+                    except common.exceptions.NoSuchElementException:
+                        kommentar_autor = ''
+                        print("Autor nicht gefunden")
+
+                    try:
+                        kommentar_text = comment_reply.find_element_by_css_selector('.objlink.nolead').text
+                        #kommentar_text = comment_main.find_element_by_xpath('//li[starts-with(@id, "bb_message_")]/div').text
+                        #print (kommentar_text[0:50])
+                    except common.exceptions.NoSuchElementException:
+                        kommentar_text = ''
+                        print("Text nicht gefunden")
+
+                    #Einfügen in die Datenbank
+                    cursor.execute('INSERT INTO comment (article_uid, rank, commenter, text, is_reply_to) '
+                                   'VALUES (%s, %s, %s, %s, %s)',
+                                   (article_uid, (k+1), kommentar_autor, kommentar_text, comment_main_uid))
+                    if cursor.lastrowid:
+                        uid = cursor.lastrowid
+                        print('Antwortkommentar für die taz gespeichert unter der ID %d' % (uid,))
 
          
- #+++++++++ SCREENSHOT +++++++++++#
-        #Scrollt runter um eventuelle Kommentare vor dem Screenshot nachzuladen
-        try:
-            element = browser.find_element_by_xpath('//a[@name="So können Sie kommentieren:"]')
-            browser.execute_script("arguments[0].scrollIntoView()", element)
-        except common.exceptions.NoSuchElementException:
-            pass
-        time.sleep(1)
+        #+++++++++ SCREENSHOT +++++++++++#
+        #time.sleep(1)
         screenshot_name = 'screenshots/Artikel_' + str(article_uid) + '.png' # baut den Name des Screentshots zusammen
         original_size = browser.get_window_size()
         required_width = browser.execute_script('return document.body.parentNode.scrollWidth')
         required_height = browser.execute_script('return document.body.parentNode.scrollHeight')
         browser.set_window_size(required_width, required_height)
+        browser.find_element_by_tag_name('body').screenshot(screenshot_name)
         browser.set_window_size(original_size['width'], original_size['height'])
-        with open(screenshot_name + ".png", 'wb') as image_file:
-            image_file.write(bytearray(browser.find_element_by_tag_name('body').screenshot_as_png))
-            browser.set_window_size(original_size['width'], original_size['height'])
-            
+
 browser.close()
