@@ -9,5 +9,5 @@ faz_password = ''
 welt_user = ''
 welt_password = ''
 
-zeit_user = ''
-zeit_password = ''
+zeit_user = 'niko.nowak@web.de'
+zeit_password = 'perupolen'
