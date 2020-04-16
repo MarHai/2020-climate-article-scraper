@@ -113,7 +113,7 @@ for article in articles:
     try:
         article_author = browser.find_element_by_class_name('atc-MetaItem-author').text
         article_author = article_author.replace('VON ', '')
-        article_author = article_author.replace('EIN KOMMENTAR VON', '')
+        article_author = article_author.replace('EIN KOMMENTAR', '')
     except common.exceptions.NoSuchElementException:
         article_author = ''
     print(article_author, sep='\n')
