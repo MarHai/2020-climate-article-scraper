@@ -1,67 +1,44 @@
 import time
-import mysql.connector
-from selenium import webdriver, common
+from selenium import common
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from _config import db, db_host, db_user, db_password, zeit_user, zeit_password
+from _config import zeit_user, zeit_password
 from _browser import browser
-
-#Datenbankverbindung herstellen
-db = mysql.connector.connect(host=db_host, database=db, user=db_user, password=db_password)
-
-                              
-
-#Prüfen, ob Datenbankverbindung erfolgreich hergestellt wurde
-if not db.is_connected():
-    print('Fehler bei der Datenbankverbindung')
-    exit(1)
-
-#Einzelnen Cursor für Datenbankoperationen deklarieren
-cursor = db.cursor(buffered=True)
-
-# prevent db connection timeout
-cursor.execute('SET session wait_timeout=28800;')
+from _database import cursor
 
 
-#***ANMELDUNG ZEIT ONLINE KONTO***
+print('Start: %d' % time.time())
 outlet_signin = 'https://meine.zeit.de/anmelden?url=https%3A%2F%2Fwww.zeit.de%2Findex&entry_service=sonstige'
 browser.get(outlet_signin)
 browser.find_element_by_css_selector('#login_email').send_keys(zeit_user)
 browser.find_element_by_css_selector('#login_pass').send_keys(zeit_password)
 browser.find_element_by_css_selector('.submit-button').click()
 
-#neuerdings ploppt ein iFrame auf, der weggeklickt werden muss
 try:
-    # frame = browser.find_element_by_xpath('//*[starts-with(@id, "sp_message_iframe_")]') #dafür muss man in den iFrame navigieren, der wie eine eigene Webseite funktioniert
     frame = WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.XPATH, '//*[starts-with(@id, "sp_message_iframe_")]')))
     browser.switch_to.frame(frame)
     akzeptieren = WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.CLASS_NAME, 'message-component')))
     time.sleep(3)
     akzeptieren.click()
     time.sleep(3)
-    #raus au dem iframe zur eigentlichen Seite
-    browser.switch_to.default_content()  #die nochmal neugeladen wird damit er dort auf die elemente zugreift
+    browser.switch_to.default_content()
     browser.refresh()
 except (common.exceptions.NoSuchElementException, common.exceptions.TimeoutException):
     pass
 
-
-#+++++++++++++++++ ARTIKEL SCRAPEN ++++++++++++++++++++++++#
-
 cursor.execute('SELECT url, uid FROM article WHERE outlet = %s AND text IS NULL', ("zeit.de",))
 if cursor.with_rows:
-    articles = cursor.fetchall() #Prüft ob Zeilen leer sind und nimmt nur jene mit Inhalt
+    articles = cursor.fetchall()
     print('%d lose Artikel in Datenbank gefunden' % (len(articles),))
 
     for article in articles:  
-        artikel_url = article[0]#Reihenfolge im Select Statement 
+        artikel_url = article[0]
         article_uid = article[1]
         print(artikel_url)
         browser.get(artikel_url)
 
         try:
-            # browser.find_element_by_link_text('Auf einer Seite lesen')
             read_on_same_page = WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.LINK_TEXT, 'Auf einer Seite lesen')))
             if read_on_same_page:
                 artikel_url = read_on_same_page.get_attribute('href')
@@ -70,7 +47,6 @@ if cursor.with_rows:
             pass
 
         try:
-            # article_title = browser.find_element_by_css_selector('h1.article-heading').text
             article_title = WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.CSS_SELECTOR, 'h1.article-heading')))
             if article_title:
                 article_title = article_title.text
@@ -91,8 +67,6 @@ if cursor.with_rows:
         except common.exceptions.NoSuchElementException:
             publication_date = ''
         
-        #+++++++++++++++++++++++++++++ AUTOR  +++++++++++++++++++++++++++++++++#
-        #Liste aller vorhanden Darstellungsformen und wie sie im Fenster angegeben werden
         kom = 'Ein Kommentar von'
         pro = 'Protokoll:'
         gast = 'Ein Gastbeitrag von'
@@ -101,49 +75,39 @@ if cursor.with_rows:
         rez = 'Eine Rezension von'
         kol = 'Eine Kolumne von'
         ess = 'Ein Essay von'
-        
-        #Autorenname bei Agenturaritkel
-            # muss als erstes stehen, da die anderen Fälle diese Feld überschreiben, wenn sie vorhanden sind
         try:
             article_author = browser.find_element_by_class_name('metadata__source').text
             article_author = article_author.replace('Quelle: ', '').strip() # Lässt am Ende nur die Namen dort stehen
         except common.exceptions.NoSuchElementException:
             pass
-        #Autorennamen Zeit-Online
+
         try:
             article_author = browser.find_element_by_class_name('byline').text
             article_author = article_author.replace(pro, '').replace(inte,"").replace(ana,'').replace(gast,'').replace(kom,'').replace(rez,'').replace(ess,'').strip()# Lässt am Ende nur die Namen dort stehen
         except common.exceptions.NoSuchElementException:
             pass
             
-        #Autorennamen wenn Zeit-Online Kolumne
         try:
             article_author = browser.find_element_by_class_name('column-heading__name').text
             article_author = article_author.replace(kol, '').replace(' und', ',').strip()# Lässt am Ende nur die Namen dort stehen
         except common.exceptions.NoSuchElementException:
             pass
             
-        #Autorname wenn Zeit-Campus
         try:
             article_author= browser.find_element_by_class_name('article-header__byline').text
             article_author = article_author.replace(pro, '').replace(inte,"").replace(ana,'').replace(gast,'').replace(kom,'').replace(rez,'').replace(ess,'').strip()# Lässt am Ende nur die Namen dort stehen
         except common.exceptions.NoSuchElementException:
             pass
         
-         #+++++++++++++++++++++++ DARSTELLUNGSFORMEN ++++++++++++++++++++++++++#
-        
-        #Agentur
         try:
             article_presentation = browser.find_element_by_class_name('metadata__source').text
             article_presentation = ''
         except common.exceptions.NoSuchElementException:
                 pass    
         
-        #Darstellungsform Zeit-Online
         try:
             article_presentation = browser.find_element_by_class_name('byline').text
-            # es wird geprüft, ob in der Beschreibungsspalte eine Darstellungsform vorhanden ist, ansonsten bleibt die Zeile leer
-            if  kom in article_presentation:
+            if kom in article_presentation:
                     article_presentation = "Kommentar"
             elif pro in article_presentation:
                     article_presentation = "Protokoll"
@@ -162,7 +126,6 @@ if cursor.with_rows:
         except common.exceptions.NoSuchElementException:
                 pass
         
-        #Darstellungsform wenn Zeit-Online Kolumne
         try:
             article_presentation = browser.find_element_by_class_name('column-heading__name').text
             if kol in article_presentation:
@@ -172,7 +135,6 @@ if cursor.with_rows:
         except common.exceptions.NoSuchElementException:
                 pass    
             
-        #Darstellungsform wenn Zeit-Campus
         try:
             article_presentation = browser.find_element_by_class_name('article-header__byline').text
             if kom in article_presentation:
@@ -194,7 +156,6 @@ if cursor.with_rows:
         except common.exceptions.NoSuchElementException:
                 pass
                  
-        #+++++++++++++++++++++ DATENBANK UPDATE FÜR ARTIKEL +++++++++++++++++++++++++#
         cursor.execute('UPDATE article SET scrape_date = %s, title = %s, text = %s,publication_date =%s, author = %s, presentation = %s WHERE uid = %s ',
                       (
                            int(time.time()),  # aktueller Zeitstempel noch nicht umgewandelt
@@ -208,20 +169,16 @@ if cursor.with_rows:
         if cursor.rowcount > 0:
             print('Artikel %d für die ZEIT erfolgreich aktualisiert' % (article_uid,))
 
-        #+++++++++++++ KOMMENTARE ++++++++++++++++#
         try:
             num_of_comment_pages = int(browser.find_element_by_css_selector('ul.pager__pages > li.pager__page:last-child').text)
         except:
             num_of_comment_pages = 1
-        print('%d Kommentarseite(n) gefunden, die jetzt durchlaufen werden' % (num_of_comment_pages,))
 
         last_rank = 0
         for comment_page in range(num_of_comment_pages):
-            # Kommentarseite öffnen (außer Seite 1)
             if comment_page != 0:
                 browser.get(artikel_url + '?page=' + str(comment_page+1) + '#comments')
 
-            # Alle Kommentare der Seite laden
             try:
                 load_reply_comments = WebDriverWait(browser, 5).until(EC.presence_of_all_elements_located((By.PARTIAL_LINK_TEXT, 'Weitere Antworten anzeigen')))
                 for a in load_reply_comments:
@@ -229,7 +186,6 @@ if cursor.with_rows:
             except (common.exceptions.NoSuchElementException, common.exceptions.TimeoutException):
                 pass
 
-            # Hauptkommentare scrapen
             comments_top = browser.find_elements_by_css_selector('#js-comments-body article.comment.js-comment-toplevel')
             for i, comment_top in enumerate(comments_top):
                 comment_author = comment_top.find_element_by_class_name('comment-meta__name').text
@@ -240,8 +196,8 @@ if cursor.with_rows:
                                (article_uid, last_rank, comment_author, comment_text))
                 if cursor.lastrowid:
                     comment_top_uid = cursor.lastrowid
+                    print('Hauptkommentar für die ZEIT gespeichert unter der ID %d' % (comment_top_uid,))
 
-                    # Unterkommentare suchen
                     zeit_comment_level_id = comment_top.get_attribute('data-ct-row')
                     comments_sub = browser.find_elements_by_css_selector('#js-comments-body article.comment.comment--indented[data-ct-row="' + zeit_comment_level_id + '"]')
                     for j, comment_sub in enumerate(comments_sub):
@@ -250,15 +206,18 @@ if cursor.with_rows:
                         cursor.execute('INSERT INTO comment (article_uid, `rank`, commenter, text, is_reply_to) '
                                        'VALUES (%s, %s, %s, %s, %s)',
                                        (article_uid, j+1, comment_author, comment_text, comment_top_uid))
+                        if cursor.lastrowid:
+                            uid = cursor.lastrowid
+                            print('Antwortkommentar für die ZEIT gespeichert unter der ID %d' % (uid,))
 
-        #+++++++ Screenshot für erste Seite ++++++++++#
-        screenshot_name = 'screenshots/Artikel_' + str(article_uid) + '.png' # baut den Name des Screentshots zusammen
-        # Screenshot ausführen
+        screenshot_name = 'screenshots/Artikel_' + str(article_uid) + '.png'
         original_size = browser.get_window_size()
         required_width = browser.execute_script('return document.body.parentNode.scrollWidth')
         required_height = browser.execute_script('return document.body.parentNode.scrollHeight')
         browser.set_window_size(required_width, required_height)
         browser.find_element_by_tag_name('body').screenshot(screenshot_name)
         browser.set_window_size(original_size['width'], original_size['height'])
+        print('Screenshot für die ZEIT unter %s gespeichert \n\n' % (screenshot_name,))
 
 browser.close()
+print('Ende: %d' % time.time())
