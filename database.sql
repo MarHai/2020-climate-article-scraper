@@ -21,7 +21,7 @@ create table if not exists comment
     title            text                    null,
     text             text                    null,
     commenter        varchar(255) default '' null,
-    is_reply_to      int(11)                 not null
+    is_reply_to      int(11) default null    null
 );
 
 INSERT INTO article (outlet, scrape_date, scrape_search, scrape_rank, url, publication_date, title, text, author, presentation) VALUES ('welt.de', null, 'klima site:welt.de (filtered 2/1/2019 until 2/28/2019, result 1 on result page 1)', 1, 'https://www.welt.de/kultur/medien/article188133493/Medien-Podcast-Greta-Thunberg-Klima-Ikone-oder-PR-Phaenomen.html', '', null, null, '', '');
