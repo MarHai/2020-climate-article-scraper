@@ -173,7 +173,9 @@ if cursor.with_rows:
                 load_reply_comments = WebDriverWait(browser, 5).until(EC.presence_of_all_elements_located((By.PARTIAL_LINK_TEXT, 'Weitere Antworten anzeigen')))
                 for a in load_reply_comments:
                     a.click()
-            except (common.exceptions.NoSuchElementException, common.exceptions.TimeoutException):
+            except (common.exceptions.NoSuchElementException,
+                    common.exceptions.TimeoutException,
+                    common.exceptions.StaleElementReferenceException):
                 pass
 
             comments_top = browser.find_elements_by_css_selector('#js-comments-body article.comment.js-comment-toplevel')

@@ -31,7 +31,12 @@ for article in articles:
     article_uid = article[1]
     url = article[0]
     print(url)
-    browser.get(url)
+
+    try:
+        browser.get(url)
+    except common.exceptions.TimeoutException:
+        print('Artikel lädt nihct')
+        continue
 
     try:
         read_on_same_page = WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.PARTIAL_LINK_TEXT, 'ARTIKEL AUF EINER SEITE LESEN')))
