@@ -180,20 +180,23 @@ if cursor.with_rows:
 
             comments_top = browser.find_elements_by_css_selector('#js-comments-body article.comment.js-comment-toplevel')
             for i, comment_top in enumerate(comments_top):
-                comment_author = comment_top.find_element_by_class_name('comment-meta__name').text
-                comment_text = comment_top.find_element_by_class_name('comment__body').text
-                last_rank = last_rank + 1
-                comment_top_uid = insert_comment(article_uid, last_rank, comment_author, comment_text)
-                if comment_top_uid:
-                    zeit_comment_level_id = comment_top.get_attribute('data-ct-row')
-                    comments_sub = browser.find_elements_by_css_selector('#js-comments-body article.comment.comment--indented[data-ct-row="' + zeit_comment_level_id + '"]')
-                    for j, comment_sub in enumerate(comments_sub):
-                        try:
-                            comment_author = comment_sub.find_element_by_class_name('comment-meta__name').text
-                            comment_text = comment_sub.find_element_by_class_name('comment__body').text
-                            insert_comment(article_uid, j+1, comment_author, comment_text, comment_top_uid)
-                        except common.exceptions.StaleElementReferenceException:
-                            pass
+                try:
+                    comment_author = comment_top.find_element_by_class_name('comment-meta__name').text
+                    comment_text = comment_top.find_element_by_class_name('comment__body').text
+                    last_rank = last_rank + 1
+                    comment_top_uid = insert_comment(article_uid, last_rank, comment_author, comment_text)
+                    if comment_top_uid:
+                        zeit_comment_level_id = comment_top.get_attribute('data-ct-row')
+                        comments_sub = browser.find_elements_by_css_selector('#js-comments-body article.comment.comment--indented[data-ct-row="' + zeit_comment_level_id + '"]')
+                        for j, comment_sub in enumerate(comments_sub):
+                            try:
+                                comment_author = comment_sub.find_element_by_class_name('comment-meta__name').text
+                                comment_text = comment_sub.find_element_by_class_name('comment__body').text
+                                insert_comment(article_uid, j+1, comment_author, comment_text, comment_top_uid)
+                            except common.exceptions.StaleElementReferenceException:
+                                pass
+                except common.exceptions.StaleElementReferenceException:
+                    pass
 
         screenshot_name = 'screenshots/Artikel_' + str(article_uid) + '.png'
         original_size = browser.get_window_size()
