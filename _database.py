@@ -10,6 +10,7 @@ if not db.is_connected():
     print('Fehler bei der Datenbankverbindung')
     exit(1)
 
+db.autocommit = True
 cursor = db.cursor(buffered=True)
 cursor.execute('SET session wait_timeout=28800;')
 cursor.execute('SET names utf8;')
