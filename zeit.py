@@ -188,9 +188,12 @@ if cursor.with_rows:
                     zeit_comment_level_id = comment_top.get_attribute('data-ct-row')
                     comments_sub = browser.find_elements_by_css_selector('#js-comments-body article.comment.comment--indented[data-ct-row="' + zeit_comment_level_id + '"]')
                     for j, comment_sub in enumerate(comments_sub):
-                        comment_author = comment_sub.find_element_by_class_name('comment-meta__name').text
-                        comment_text = comment_sub.find_element_by_class_name('comment__body').text
-                        insert_comment(article_uid, j+1, comment_author, comment_text, comment_top_uid)
+                        try:
+                            comment_author = comment_sub.find_element_by_class_name('comment-meta__name').text
+                            comment_text = comment_sub.find_element_by_class_name('comment__body').text
+                            insert_comment(article_uid, j+1, comment_author, comment_text, comment_top_uid)
+                        except common.exceptions.StaleElementReferenceException:
+                            pass
 
         screenshot_name = 'screenshots/Artikel_' + str(article_uid) + '.png'
         original_size = browser.get_window_size()
