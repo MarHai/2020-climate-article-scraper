@@ -5,10 +5,12 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from _config import welt_user, welt_password
 from _browser import browser
-from _database import cursor
+from _database import cursor, insert_comment, update_article
 
 
 print('Start: %d' % time.time())
+
+
 def showAllComments(comment_container):
     try:
         comment_button = comment_container.find_element_by_xpath('div[last()]/a/span')
@@ -17,19 +19,6 @@ def showAllComments(comment_container):
         showAllComments(comment_container)
     except common.exceptions.NoSuchElementException:
         pass
-
-
-def storeCommentInDBandReturnUID(db_cursor, article_uid, rank, commenter, text, is_reply_to=None):
-    db_cursor.execute('INSERT INTO comment (article_uid, rank, commenter, text, is_reply_to)'
-                      'VALUES (%s, %s, %s, %s, %s)',
-                      (article_uid, rank, commenter, text, is_reply_to))
-    if db_cursor.lastrowid:
-        uid = db_cursor.lastrowid
-        print('Kommentar für die welt.de erfolgreich gespeichert unter der ID %d' % (uid,))
-        return uid
-    else:
-        print('Kommentar nicht erfolgreich gespeichert, FEHLER!')
-        return None
 
 
 browser.get('https://secure.mypass.de/sso/web-fullpage/login?service=https%3A%2F%2Flo.la.welt.de%2Fuser%2Fredirect%3FredirectUrl%3Dhttps%253A%252F%252Fwww.welt.de%252F&wt_eid=2155419246963806176&wt_t=1579609313997')
@@ -114,18 +103,7 @@ for i, article in enumerate(articles):
     except common.exceptions.NoSuchElementException:
         pass
 
-    cursor.execute('UPDATE article SET scrape_date = %s, publication_date = %s, title = %s, text = %s, author = %s, presentation = %s WHERE uid = %s',
-                   (
-                       int(time.time()),  # aktueller Zeitstempel
-                       publication_date,
-                       article_title,
-                       article_text,
-                       article_author,
-                       article_presentation,
-                       article_uid
-                   ))
-    if cursor.rowcount > 0:
-        print('Artikel %d für welt.de erfolgreich aktualisiert' % (article_uid,))
+    update_article(article_uid, article_title, article_text, publication_date, article_author, article_presentation)
 
     try:
         showAllComments(browser.find_element_by_xpath("//div[@data-qa='comments']"))
@@ -155,12 +133,9 @@ for i, article in enumerate(articles):
                     kommentare_text = ''
 
                 if k == 0:
-                    first_comment_id = storeCommentInDBandReturnUID(cursor,
-                                                                    article_uid, j+1, kommentare_autor, kommentare_text)
+                    first_comment_id = insert_comment(article_uid, j+1, kommentare_autor, kommentare_text)
                 else:
-                    storeCommentInDBandReturnUID(cursor,
-                                                 article_uid, j + 1, kommentare_autor, kommentare_text,
-                                                 first_comment_id)
+                    insert_comment(article_uid, j + 1, kommentare_autor, kommentare_text, '', first_comment_id)
     except common.exceptions.NoSuchElementException:
         pass
 

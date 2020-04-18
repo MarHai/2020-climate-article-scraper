@@ -5,7 +5,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from _config import zeit_user, zeit_password
 from _browser import browser
-from _database import cursor
+from _database import cursor, insert_comment, update_article
 
 
 print('Start: %d' % time.time())
@@ -155,19 +155,9 @@ if cursor.with_rows:
                 article_presentation = ''
         except common.exceptions.NoSuchElementException:
                 pass
-                 
-        cursor.execute('UPDATE article SET scrape_date = %s, title = %s, text = %s,publication_date =%s, author = %s, presentation = %s WHERE uid = %s ',
-                      (
-                           int(time.time()),  # aktueller Zeitstempel noch nicht umgewandelt
-                           article_title,
-                           article_text,
-                           publication_date,
-                           article_author or '',
-                           article_presentation or '',
-                           article_uid))
 
-        if cursor.rowcount > 0:
-            print('Artikel %d für die ZEIT erfolgreich aktualisiert' % (article_uid,))
+        update_article(article_uid, article_title, article_text, publication_date,
+                       article_author or '', article_presentation or '')
 
         try:
             num_of_comment_pages = int(browser.find_element_by_css_selector('ul.pager__pages > li.pager__page:last-child').text)
@@ -189,26 +179,16 @@ if cursor.with_rows:
             comments_top = browser.find_elements_by_css_selector('#js-comments-body article.comment.js-comment-toplevel')
             for i, comment_top in enumerate(comments_top):
                 comment_author = comment_top.find_element_by_class_name('comment-meta__name').text
-                comment_title = comment_top.find_element_by_class_name('comment__body').text
                 comment_text = comment_top.find_element_by_class_name('comment__body').text
                 last_rank = last_rank + 1
-                cursor.execute('INSERT INTO comment (article_uid, `rank`, commenter, text) VALUES (%s, %s, %s, %s)',
-                               (article_uid, last_rank, comment_author, comment_text))
-                if cursor.lastrowid:
-                    comment_top_uid = cursor.lastrowid
-                    print('Hauptkommentar für die ZEIT gespeichert unter der ID %d' % (comment_top_uid,))
-
+                comment_top_uid = insert_comment(article_uid, last_rank, comment_author, comment_text)
+                if comment_top_uid:
                     zeit_comment_level_id = comment_top.get_attribute('data-ct-row')
                     comments_sub = browser.find_elements_by_css_selector('#js-comments-body article.comment.comment--indented[data-ct-row="' + zeit_comment_level_id + '"]')
                     for j, comment_sub in enumerate(comments_sub):
                         comment_author = comment_sub.find_element_by_class_name('comment-meta__name').text
                         comment_text = comment_sub.find_element_by_class_name('comment__body').text
-                        cursor.execute('INSERT INTO comment (article_uid, `rank`, commenter, text, is_reply_to) '
-                                       'VALUES (%s, %s, %s, %s, %s)',
-                                       (article_uid, j+1, comment_author, comment_text, comment_top_uid))
-                        if cursor.lastrowid:
-                            uid = cursor.lastrowid
-                            print('Antwortkommentar für die ZEIT gespeichert unter der ID %d' % (uid,))
+                        insert_comment(article_uid, j+1, comment_author, comment_text, comment_top_uid)
 
         screenshot_name = 'screenshots/Artikel_' + str(article_uid) + '.png'
         original_size = browser.get_window_size()

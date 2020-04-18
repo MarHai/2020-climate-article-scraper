@@ -6,7 +6,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from _browser import browser
-from _database import cursor
+from _database import cursor, update_article, insert_comment
 
 
 print('Start: %d' % time.time())
@@ -75,19 +75,7 @@ if cursor.with_rows:
         except common.exceptions.NoSuchElementException:
             article_presentation = ''
 
-        cursor.execute('UPDATE article SET scrape_date = %s, title = %s, text = %s, publication_date =%s, author = %s, presentation = %s WHERE uid = %s ',
-                       (
-                           int(time.time()),  # aktueller Zeitstempel noch nicht umgewandelt
-                           article_title,
-                           article_text,
-                           publication_date,
-                           article_author,
-                           article_presentation,
-                           article_uid
-                       ))
-
-        if cursor.rowcount > 0:
-            print('Artikel %d für die taz erfolgreich aktualisiert' % (article_uid,))
+        update_article(article_uid, article_title, article_text, publication_date, article_author, article_presentation)
 
         try:
             browser.execute_script('window.scrollTo(0, Math.max(document.documentElement.scrollHeight, document.body.scrollHeight, document.documentElement.clientHeight));')
@@ -113,12 +101,8 @@ if cursor.with_rows:
             except common.exceptions.NoSuchElementException:
                 kommentar_text = ''
 
-            cursor.execute('INSERT INTO comment (article_uid, rank, commenter, text) VALUES (%s, %s, %s, %s)',
-                           (article_uid, (j+1), kommentar_autor, kommentar_text))
-            if cursor.lastrowid:
-                comment_main_uid = cursor.lastrowid
-                print('Hauptkommentar für die taz gespeichert unter der ID %d' % (comment_main_uid,))
-
+            comment_main_uid = insert_comment(article_uid, (j+1), kommentar_autor, kommentar_text)
+            if comment_main_uid:
                 comments_replies = comment_main.find_elements_by_css_selector('ul.thread > li')
                 for k, comment_reply in enumerate(comments_replies):
                     try:
@@ -131,12 +115,7 @@ if cursor.with_rows:
                     except common.exceptions.NoSuchElementException:
                         kommentar_text = ''
 
-                    cursor.execute('INSERT INTO comment (article_uid, rank, commenter, text, is_reply_to) '
-                                   'VALUES (%s, %s, %s, %s, %s)',
-                                   (article_uid, (k+1), kommentar_autor, kommentar_text, comment_main_uid))
-                    if cursor.lastrowid:
-                        uid = cursor.lastrowid
-                        print('Antwortkommentar für die taz gespeichert unter der ID %d' % (uid,))
+                    insert_comment(article_uid, (k+1), kommentar_autor, kommentar_text, '', comment_main_uid)
 
         screenshot_name = 'screenshots/Artikel_' + str(article_uid) + '.png' # baut den Name des Screentshots zusammen
         original_size = browser.get_window_size()

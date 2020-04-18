@@ -5,7 +5,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from _config import faz_user, faz_password
 from _browser import browser
-from _database import cursor
+from _database import cursor, insert_comment, update_article
 
 
 print('Start: %d' % time.time())
@@ -84,18 +84,7 @@ for article in articles:
     except common.exceptions.NoSuchElementException:
         article_text = article_teaser + ''
 
-    cursor.execute('UPDATE article SET scrape_date = %s, publication_date =%s, title = %s, text = %s, author = %s, presentation = %s WHERE uid = %s',
-                   (
-                       int(time.time()),
-                       publication_date,
-                       article_title,
-                       article_text,
-                       article_author,
-                       article_presentation,
-                       article_uid
-                   ))
-    if cursor.rowcount > 0:
-        print('Artikel %d für die FAZ erfolgreich aktualisiert' % (article_uid,))
+    update_article(article_uid, article_title, article_text, publication_date, article_author, article_presentation)
 
     while True:
         try:
@@ -119,14 +108,8 @@ for article in articles:
             kommentar_text = comment_main.find_element_by_class_name('lst-Comments_CommentText').get_attribute('innerHTML')
         except common.exceptions.NoSuchElementException:
             kommentar_text = ''
-        cursor.execute('INSERT INTO comment (article_uid, rank , commenter, title, text)'
-                       'VALUES (%s, %s, %s, %s, %s)',
-                       (article_uid, (j+1), kommentar_autor, kommentar_titel, kommentar_text))
-        if cursor.lastrowid:
-            comment_main_uid = cursor.lastrowid
-            print('Hauptkommentar für die FAZ erfolgreich gespeichert unter der ID %d' % (comment_main_uid,))
-        else:
-            comment_main_uid = None
+
+        comment_main_uid = insert_comment(article_uid, (j+1), kommentar_autor, kommentar_titel, kommentar_text)
 
         comments_replies = comment_main.find_elements_by_class_name('lst-Comments_Item-level2')
 
@@ -144,12 +127,7 @@ for article in articles:
             except common.exceptions.NoSuchElementException:
                 kommentar_text = ''
 
-            cursor.execute('INSERT INTO comment (article_uid, rank , commenter, title, text, is_reply_to)'
-                           'VALUES (%s, %s, %s, %s, %s, %s)',
-                           (article_uid, (k+1), kommentar_autor, kommentar_titel, kommentar_text, comment_main_uid))
-            if cursor.lastrowid:
-                uid = cursor.lastrowid
-                print('Kommentar für die FAZ erfolgreich gespeichert unter der ID %d' % (uid,))
+            insert_comment(article_uid, (k+1), kommentar_autor, kommentar_text, kommentar_titel, comment_main_uid)
 
     path = 'screenshots/Artikel_'+str(article_uid)+'.png'
     browser.find_element_by_tag_name('body').screenshot(path)
