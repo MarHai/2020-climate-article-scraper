@@ -16,7 +16,8 @@ create table if not exists article
 
 create table if not exists comment
 (
-    uid         int        null,
+    uid              int auto_increment
+        primary key,
     article_uid int        null,
     `rank`      int        null,
     title       mediumtext null,
