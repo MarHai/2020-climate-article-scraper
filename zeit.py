@@ -36,7 +36,13 @@ if cursor.with_rows:
         artikel_url = article[0]
         article_uid = article[1]
         print(artikel_url)
-        browser.get(artikel_url)
+
+        try:
+            browser.get(artikel_url)
+        except common.exceptions.TimeoutException:
+            print('Artikel lädt nihct')
+            update_article(article_uid, '', 'Artikel nicht mehr verfügbar', '', '', '')
+            continue
 
         try:
             read_on_same_page = WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.LINK_TEXT, 'Auf einer Seite lesen')))

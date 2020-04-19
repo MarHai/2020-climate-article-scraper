@@ -41,7 +41,13 @@ for i, article in enumerate(articles):
     url = article[0]
     print(url)
 
-    browser.get(url)
+    try:
+        browser.get(url)
+    except common.exceptions.TimeoutException:
+        print('Artikel lädt nihct')
+        update_article(article_uid, '', 'Artikel nicht mehr verfügbar', '', '', '')
+        continue
+
     browser.execute_script('document.querySelectorAll(".as-oil-content-overlay").forEach(function(el) { el.remove() })')
 
     try:

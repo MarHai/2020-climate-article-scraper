@@ -36,6 +36,7 @@ for article in articles:
         browser.get(url)
     except common.exceptions.TimeoutException:
         print('Artikel lädt nihct')
+        update_article(article_uid, '', 'Artikel nicht mehr verfügbar', '', '', '')
         continue
 
     try:
