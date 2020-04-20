@@ -32,10 +32,16 @@ if cursor.with_rows:
     articles = cursor.fetchall()
     print('%d lose Artikel in Datenbank gefunden' % (len(articles),))
 
-    for article in articles:  
+    for article in articles:
         artikel_url = article[0]
         article_uid = article[1]
         print(artikel_url)
+
+        cursor.execute('SELECT COUNT(*) FROM article WHERE uid = %s AND text IS NULL' % article_uid)
+        double_check = cursor.fetchone()
+        if double_check[0] == 0:
+            print('Artikel inzwischen verarbeitet')
+            continue
 
         try:
             browser.get(artikel_url)

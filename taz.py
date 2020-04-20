@@ -18,6 +18,12 @@ if cursor.with_rows:
     for article in articles:  
         artikel_url = article[0]
         article_uid = article[1]
+
+        cursor.execute('SELECT COUNT(*) FROM article WHERE uid = %s AND text IS NULL' % article_uid)
+        double_check = cursor.fetchone()
+        if double_check[0] == 0:
+            print('Artikel inzwischen verarbeitet')
+            continue
         
         browser.get(artikel_url)
         print(artikel_url)
