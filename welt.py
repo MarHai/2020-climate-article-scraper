@@ -118,6 +118,8 @@ for i, article in enumerate(articles):
             try:
                 show_more_comments = box.find_element_by_xpath("div[last()]/div[2]/a")
                 show_more_comments.click()
+            except common.exceptions.ElementClickInterceptedException:
+                browser.execute_script('document.querySelectorAll(".c-dialog__shadow").forEach(function(el) { el.remove() })')
             except common.exceptions.NoSuchElementException:
                 pass
 
