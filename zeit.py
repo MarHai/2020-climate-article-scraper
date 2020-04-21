@@ -51,7 +51,7 @@ if cursor.with_rows:
             continue
 
         try:
-            read_on_same_page = WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.LINK_TEXT, 'Auf einer Seite lesen')))
+            read_on_same_page = WebDriverWait(browser, 3).until(EC.presence_of_element_located((By.LINK_TEXT, 'Auf einer Seite lesen')))
             if read_on_same_page:
                 artikel_url = read_on_same_page.get_attribute('href')
                 browser.get(artikel_url)
@@ -59,7 +59,7 @@ if cursor.with_rows:
             pass
 
         try:
-            article_title = WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.CSS_SELECTOR, 'h1.article-heading')))
+            article_title = WebDriverWait(browser, 3).until(EC.presence_of_element_located((By.CSS_SELECTOR, 'h1.article-heading')))
             if article_title:
                 article_title = article_title.text
         except (common.exceptions.NoSuchElementException, common.exceptions.TimeoutException):
@@ -182,7 +182,7 @@ if cursor.with_rows:
                 browser.get(artikel_url + '?page=' + str(comment_page+1) + '#comments')
 
             try:
-                load_reply_comments = WebDriverWait(browser, 5).until(EC.presence_of_all_elements_located((By.PARTIAL_LINK_TEXT, 'Weitere Antworten anzeigen')))
+                load_reply_comments = WebDriverWait(browser, 3).until(EC.presence_of_all_elements_located((By.PARTIAL_LINK_TEXT, 'Weitere Antworten anzeigen')))
                 for a in load_reply_comments:
                     a.click()
             except (common.exceptions.NoSuchElementException,

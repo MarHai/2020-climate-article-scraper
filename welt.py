@@ -15,7 +15,7 @@ def showAllComments(comment_container):
     try:
         comment_button = comment_container.find_element_by_xpath('div[last()]/a/span')
         comment_button.click()
-        time.sleep(0.5)
+        # time.sleep(0.5)
         showAllComments(comment_container)
     except common.exceptions.NoSuchElementException:
         pass
@@ -64,7 +64,7 @@ for i, article in enumerate(articles):
         pass
 
     try:
-        publication_date = WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.CLASS_NAME, 'c-publish-date')))
+        publication_date = WebDriverWait(browser, 3).until(EC.presence_of_element_located((By.CLASS_NAME, 'c-publish-date')))
         if publication_date:
             publication_date = publication_date.get_attribute('datetime')
     except (common.exceptions.NoSuchElementException, common.exceptions.TimeoutException):

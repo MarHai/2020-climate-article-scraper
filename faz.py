@@ -46,7 +46,7 @@ for article in articles:
         continue
 
     try:
-        read_on_same_page = WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.PARTIAL_LINK_TEXT, 'ARTIKEL AUF EINER SEITE LESEN')))
+        read_on_same_page = WebDriverWait(browser, 3).until(EC.presence_of_element_located((By.PARTIAL_LINK_TEXT, 'ARTIKEL AUF EINER SEITE LESEN')))
         if read_on_same_page:
             read_on_same_page = browser.find_element_by_class_name('btn-Base_Link').get_attribute("href")
             teillink = read_on_same_page.split('#')
@@ -56,7 +56,7 @@ for article in articles:
         pass
 
     try:
-        publication_date = WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.CLASS_NAME, 'atc-MetaTime')))
+        publication_date = WebDriverWait(browser, 3).until(EC.presence_of_element_located((By.CLASS_NAME, 'atc-MetaTime')))
         if publication_date:
             publication_date = publication_date.text
     except (common.exceptions.NoSuchElementException, common.exceptions.TimeoutException):
@@ -100,7 +100,7 @@ for article in articles:
 
     while True:
         try:
-            WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.CLASS_NAME, 'js-lst-Comments_List-show-more'))).click()
+            WebDriverWait(browser, 3).until(EC.presence_of_element_located((By.CLASS_NAME, 'js-lst-Comments_List-show-more'))).click()
         except (common.exceptions.NoSuchElementException,
                 common.exceptions.TimeoutException,
                 common.exceptions.StaleElementReferenceException):

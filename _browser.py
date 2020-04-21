@@ -21,4 +21,4 @@ else:
 print(geckodriver)
 
 browser = webdriver.Firefox(executable_path=geckodriver)
-browser.implicitly_wait(5)
+browser.implicitly_wait(3)
