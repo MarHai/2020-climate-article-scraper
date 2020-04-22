@@ -30,8 +30,8 @@ def update_article(article_uid, article_title, article_text, publication_date, a
             return False
         else:
             return update_article(article_uid,
-                                  article_title.encode('utf-8'),
-                                  article_text.encode('utf-8'),
+                                  str(article_title).encode('utf-8'),
+                                  str(article_text).encode('utf-8'),
                                   publication_date,
                                   article_author,
                                   article_presentation,
@@ -61,8 +61,8 @@ def insert_comment(article_uid, rank, commenter, text, title='', is_reply_to=Non
             return insert_comment(article_uid,
                                   rank,
                                   commenter,
-                                  text.encode('utf-8'),
-                                  '' if title is None else title.encode('utf-8'),
+                                  str(text).encode('utf-8'),
+                                  '' if title is None else str(title).encode('utf-8'),
                                   is_reply_to,
                                   True)
     if cursor.lastrowid:
