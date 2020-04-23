@@ -187,7 +187,8 @@ if cursor.with_rows:
                     a.click()
             except (common.exceptions.NoSuchElementException,
                     common.exceptions.TimeoutException,
-                    common.exceptions.StaleElementReferenceException):
+                    common.exceptions.StaleElementReferenceException,
+                    common.exceptions.ElementClickInterceptedException):
                 pass
 
             comments_top = browser.find_elements_by_css_selector('#js-comments-body article.comment.js-comment-toplevel')
