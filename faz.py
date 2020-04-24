@@ -141,6 +141,10 @@ for article in articles:
 
             insert_comment(article_uid, (k+1), kommentar_autor, kommentar_text, kommentar_titel, comment_main_uid)
 
+    original_size = browser.get_window_size()
+    required_width = browser.execute_script('return document.body.parentNode.scrollWidth')
+    required_height = browser.execute_script('return document.body.parentNode.scrollHeight')
+    browser.set_window_size(required_width, required_height)
     path = 'screenshots/Artikel_'+str(article_uid)+'.png'
     browser.find_element_by_tag_name('body').screenshot(path)
     print('Screenshot für die FAZ unter %s gespeichert \n\n' % (path,))
