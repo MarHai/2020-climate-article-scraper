@@ -38,6 +38,8 @@ for article in articles:
     if double_check[0] == 0:
         print('Artikel inzwischen verarbeitet')
         continue
+    else:
+        update_article(article_uid, '', 'verarbeite ...', '', '', '', True)
 
     try:
         browser.get(url)
@@ -46,6 +48,7 @@ for article in articles:
         time.sleep(3)
     except common.exceptions.WebDriverException:
         print('Browser kann nicht mehr, vmtl. ein Hauptspeicherproblem, wir probieren es später nochmals ...')
+        update_article(article_uid, '', 'Artikel nicht mehr verfügbar', '', '', '')
         continue
 
     try:
