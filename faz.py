@@ -32,7 +32,8 @@ for article in articles:
     url = article[0]
     print(url)
 
-    cursor.execute('SELECT COUNT(*) FROM article WHERE uid = %s AND text IS NULL' % article_uid)
+    cursor.execute('SELECT COUNT(*) FROM article WHERE uid = %s AND '
+                   '(text IS NULL OR text = "Artikel nicht mehr verfügbar")' % article_uid)
     double_check = cursor.fetchone()
     if double_check[0] == 0:
         print('Artikel inzwischen verarbeitet')
@@ -41,8 +42,10 @@ for article in articles:
     try:
         browser.get(url)
     except common.exceptions.TimeoutException:
-        print('Artikel lädt nihct')
-        update_article(article_uid, '', 'Artikel nicht mehr verfügbar', '', '', '')
+        print('Artikel lädt nihct, warte weitere Sekunden ...')
+        time.sleep(3)
+    except common.exceptions.WebDriverException:
+        print('Browser kann nicht mehr, vmtl. ein Hauptspeicherproblem, wir probieren es später nochmals ...')
         continue
 
     try:
@@ -141,9 +144,10 @@ for article in articles:
 
             insert_comment(article_uid, (k+1), kommentar_autor, kommentar_text, kommentar_titel, comment_main_uid)
 
-    original_size = browser.get_window_size()
     required_width = browser.execute_script('return document.body.parentNode.scrollWidth')
     required_height = browser.execute_script('return document.body.parentNode.scrollHeight')
+    if required_height > 10000:
+        required_height = 10000
     browser.set_window_size(required_width, required_height)
     path = 'screenshots/Artikel_'+str(article_uid)+'.png'
     browser.find_element_by_tag_name('body').screenshot(path)
