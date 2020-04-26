@@ -19,7 +19,7 @@ Anmelden = browser.find_element_by_class_name("btn-Base_Link")
 Anmelden.click()
 time.sleep(5)
 
-cursor.execute('SELECT url, uid FROM article WHERE outlet = %s AND text IS NULL' , ("faz.net",))
+cursor.execute('SELECT url, uid FROM article WHERE outlet = %s AND (text IS NULL OR text = "Artikel nicht mehr verfügbar")' , ("faz.net",))
 if cursor.with_rows:
     articles = cursor.fetchall()
     print('%d lose Artikel in Datenbank gefunden' % (len(articles),))
