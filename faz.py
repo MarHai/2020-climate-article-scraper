@@ -92,14 +92,21 @@ for article in articles:
         article_teaser = ''
 
     try:
-        article_text = article_teaser + "\n\n"
+        article_text = article_teaser
+        if article_text != '':
+            article_text += "\n\n"
         paragraphs = browser.find_elements_by_class_name("atc-TextParagraph")
         for paragraph in paragraphs:
             article_text = article_text + "\n\n" + paragraph.text
     except common.exceptions.NoSuchElementException:
         article_text = article_teaser + ''
 
-    update_article(article_uid, article_title, article_text, publication_date, article_author, article_presentation)
+    if article_text == '':
+        print('Artikel leer/nicht gefunden, entsprechender Abbruch für Kommentare')
+        update_article(article_uid, '', 'Artikel nicht mehr verfügbar', '', '', '')
+        continue
+    else:
+        update_article(article_uid, article_title, article_text, publication_date, article_author, article_presentation)
 
     while True:
         try:
