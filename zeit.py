@@ -205,7 +205,7 @@ if cursor.with_rows:
                             try:
                                 comment_author = comment_sub.find_element_by_class_name('comment-meta__name').text
                                 comment_text = comment_sub.find_element_by_class_name('comment__body').text
-                                insert_comment(article_uid, j+1, comment_author, comment_text, comment_top_uid)
+                                insert_comment(article_uid, j+1, comment_author, comment_text, '', comment_top_uid)
                             except common.exceptions.StaleElementReferenceException:
                                 pass
                 except common.exceptions.StaleElementReferenceException:
